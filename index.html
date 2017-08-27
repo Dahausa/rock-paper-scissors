@@ -15,105 +15,185 @@
 <body>
 
     <script type="text/javascript">
+		
+	
         var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
 
         var platforms;
+		var players;
+		var indiacaDirection;
 
 
         function preload() {
-            game.load.image('ball', 'assets/IndiacaBall.png');
+            game.load.spritesheet('indiaca', 'assets/IndiacaBall.png',32,32);
             game.load.image('sky', 'assets/sky.png');
             game.load.image('ground', 'assets/platform.png');
             game.load.spritesheet('dude', 'assets/dude.png', 32, 48);
+			game.load.image('net','assets/Stick.png');
         }
 
         function create() {
 
-            ball = game.add.sprite(0, 0, 'ball');
-
+			game.add.sprite(0,0,'sky');
             //  We're going to be using physics, so enable the Arcade Physics system
             game.physics.startSystem(Phaser.Physics.ARCADE);
             //  The platforms group contains the ground and the 2 ledges we can jump on
             platforms = game.add.group();
-
-            //  We will enable physics for any object that is created in this group
+			//  We will enable physics for any object that is created in this group
             platforms.enableBody = true;
-
-            // Here we create the ground.
+			
+			// Here we create the ground.
             var ground = platforms.create(0, game.world.height - 64, 'ground');
-
             //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
             ground.scale.setTo(2, 2);
-
             //  This stops it from falling away when you jump on it
             ground.body.immovable = true;
+			
+			// The net 
+			net = game.add.sprite(game.world.width  / 2 -8, game.world.height-180,'net');
+			game.physics.arcade.enable(net);
+			net.scale.setTo(1,1.2);
+			net.body.immovable = true;
+			net.body.bounce = 0.1;
+			
+			// The indiaca
+			indiaca = game.add.sprite(0, 0, 'indiaca');
+			game.physics.arcade.enable(indiaca);
+			indiaca.body.bounce.y = 0.9;
+			indiaca.body.bounce.x = 0.9;
+			indiaca.body.gravity.set(10, 300);
+            indiaca.body.collideWorldBounds = true;
+			
+			indiaca.animations.add('up', [0, 3, 2], 10, false);
+            indiaca.animations.add('down', [2, 1, 0], 10, false);
+			
+			//The group for both players;
+			players = game.add.group();
+			players.enableBody = true;
+			
+            // The left player
+            playerLeft = players.create(32, game.world.height - 150, 'dude');
+            playerLeft.body.bounce.y = 0;
+            playerLeft.body.gravity.y = 300;
+            playerLeft.body.collideWorldBounds = true;
+            playerLeft.animations.add('left', [0, 1, 2, 3], 10, true);
+            playerLeft.animations.add('right', [5, 6, 7, 8], 10, true);
+			
+			// The right player
+            playerRight = players.create(game.world.width - 10, game.world.height - 150, 'dude');
+            playerRight.body.bounce.y = 0;
+            playerRight.body.gravity.y = 300;
+            playerRight.body.collideWorldBounds = true;
+            playerRight.animations.add('left', [0, 1, 2, 3], 10, true);
+            playerRight.animations.add('right', [5, 6, 7, 8], 10, true);
 
-            // The player and its settings
-            player = game.add.sprite(32, game.world.height - 150, 'dude');
-            //  We need to enable physics on the player
-            game.physics.arcade.enable(player);
-            game.physics.arcade.enable(ball);
-
-            //  Player physics properties. Give the little guy a slight bounce.
-            player.body.bounce.y = 0.2;
-            player.body.gravity.y = 300;
-            player.body.collideWorldBounds = true;
-
-            ball.body.bounce.y = 0.2;
-            ball.body.gravity.y = 300;
-            ball.body.collideWorldBounds = true;
-
-            //  Our two animations, walking left and right.
-            player.animations.add('left', [0, 1, 2, 3], 10, true);
-            player.animations.add('right', [5, 6, 7, 8], 10, true);
-
-            cursors = game.input.keyboard.createCursorKeys();
+            cursorPlayerRight = game.input.keyboard.createCursorKeys();
+			
+			upButton = game.input.keyboard.addKey(Phaser.Keyboard.W);
+			downButton = game.input.keyboard.addKey(Phaser.Keyboard.S);
+			leftButton = game.input.keyboard.addKey(Phaser.Keyboard.A);
+			rightButton = game.input.keyboard.addKey(Phaser.Keyboard.D);
         }
 
         function update() {
+		
             //  Collide the player and the stars with the platforms
-            var playerHitPlatform = game.physics.arcade.collide(player, platforms);
-            var ballHitPlatform = game.physics.arcade.collide(ball, platforms);
-            var ballHitPlayer = game.physics.arcade.collide(ball, player);
+            var playerLeftHitPlatform = game.physics.arcade.collide(playerLeft, platforms);
+            var playerRightHitPlatform = game.physics.arcade.collide(playerRight, platforms);
 
+            var indiacaHitPlatform = game.physics.arcade.collide(indiaca, platforms);
+			var indiacaHitNet = game.physics.arcade.collide(indiaca,net);
+
+            var indiacaHitPlayerLeft = game.physics.arcade.collide(indiaca, playerLeft);
+            var indiacaHitPlayerRight = game.physics.arcade.collide(indiaca, playerRight);
+
+			var facing = indiaca.body.facing;
+			//console.log("facing: " + facing + ": velocity: " + indiaca.body.velocity.y);
+			
+			if(indiacaDirection != facing) {
+				if(facing = 3){
+					indiaca.animations.play('up');
+				}
+				if(facing = 4) {
+					indiaca.animations.play('down');
+				}
+			}
+			
+			indiacaDirection = facing;
+			
 
             //  Reset the players velocity (movement)
-            player.body.velocity.x = 0;
+            playerLeft.body.velocity.x = 0;
+			playerRight.body.velocity.x = 0;
 
-            if (cursors.left.isDown) {
+            if (cursorPlayerRight.left.isDown) {
                 //  Move to the left
-                player.body.velocity.x = -150;
+                playerRight.body.velocity.x = -150;
 
-                player.animations.play('left');
+                playerRight.animations.play('left');
             }
-            else if (cursors.right.isDown) {
+            else if (cursorPlayerRight.right.isDown) {
                 //  Move to the right
-                player.body.velocity.x = 150;
+                playerRight.body.velocity.x = 150;
 
-                player.animations.play('right');
+                playerRight.animations.play('right');
             }
             else {
                 //  Stand still
-                player.animations.stop();
+                playerRight.animations.stop();
+                playerRight.frame = 4;
+            }
+                        //  Allow the player to jump if they are touching the ground.
+            if (cursorPlayerRight.up.isDown && playerRight.body.touching.down && playerRightHitPlatform) {
+                playerRight.body.velocity.y = -300;
+            }
 
-                player.frame = 4;
+            if (leftButton.isDown) {
+                //  Move to the left
+                playerLeft.body.velocity.x = -150;
+
+                playerLeft.animations.play('left');
+            }
+            else if (rightButton.isDown) {
+                //  Move to the right
+                playerLeft.body.velocity.x = 150;
+
+                playerLeft.animations.play('right');
+            }
+            else {
+                //  Stand still
+                playerLeft.animations.stop();
+                playerLeft.frame = 4;
             }
 
             //  Allow the player to jump if they are touching the ground.
-            if (cursors.up.isDown && player.body.touching.down && playerHitPlatform) {
-                player.body.velocity.y = -300;
+            if (upButton.isDown && playerLeft.body.touching.down && playerLeftHitPlatform) {
+                playerLeft.body.velocity.y = -300;
             }
 
-            if(ballHitPlatform) {
-                ball.body.velocity.y = 0;
+            if(indiacaHitPlatform) {
+                indiaca.body.velocity.y = 0;
+				indiaca.body.velocity.x = 0;
             }
 
-            if(ballHitPlayer) {
-                ball.body.velocity.y = -100;
-                ball.body.velocity.x = -10;
+            if(indiacaHitPlayerLeft) {
+                indiaca.body.velocity.y = -350;
             }
+
+            if(indiacaHitPlayerRight) {
+                indiaca.body.velocity.y = -350;
+            }
+
 
         }
+		
+		function render () {
+
+			//debug helper
+			game.debug.spriteInfo(indiaca, 32, 48);
+
+		}
+		
     </script>
 
 </body>
