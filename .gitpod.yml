@@ -1,2 +1,4 @@
 tasks:
   - init: npm install
+  - init: npm i -g http-server
+  - command: http-server .
