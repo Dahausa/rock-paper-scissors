@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "main.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "scripts": { 
+    "lite": "lite-server --port 10001", 
+    "start": "npm run lite" 
   },
   "repository": {
     "type": "git",
@@ -16,7 +17,7 @@
     "url": "https://github.com/Dahausa/indiaca/issues"
   },
   "homepage": "https://github.com/Dahausa/indiaca#readme",
-  "dependencies": {
-    "http-server": "^0.12.3"
+  "devDependencies": {
+    "lite-server": "^2.5.4"
   }
 }
